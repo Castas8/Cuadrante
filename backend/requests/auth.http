@@ -1,0 +1,77 @@
+@baseUrl = http://localhost:3000/api
+
+### Health (200)
+GET {{baseUrl}}/health
+
+### Registro correcto (201)
+# @name register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Diego Castañeda",
+  "email": "diego@cuadrante.mx",
+  "password": "Cuadrante2026"
+}
+
+### Registro con el mismo correo (400)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Otro Diego",
+  "email": "DIEGO@cuadrante.mx",
+  "password": "OtraClave2026"
+}
+
+### Registro con datos inválidos (400)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "D",
+  "email": "correo-sin-arroba",
+  "password": "123"
+}
+
+### Login correcto (200)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "diego@cuadrante.mx",
+  "password": "Cuadrante2026"
+}
+
+### Login con contraseña incorrecta (401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "diego@cuadrante.mx",
+  "password": "contraseñaMala"
+}
+
+### Login con correo que no existe (401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "nadie@cuadrante.mx",
+  "password": "Cuadrante2026"
+}
+
+### Usuario de la sesión, con token (200)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Usuario de la sesión, sin token (401)
+GET {{baseUrl}}/auth/me
+
+### Usuario de la sesión, con token falso (401)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer token.falso.123
+
+### Ruta que no existe (404)
+GET {{baseUrl}}/no-existe

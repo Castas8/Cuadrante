@@ -1,0 +1,212 @@
+# Pruebas de los 3 CRUD propios: categorías, vehículos y repartidores.
+# Corre primero el login: las demás peticiones usan su token.
+
+@baseUrl = http://localhost:3000/api
+
+### Login con el usuario de prueba (200)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@cuadrante.mx",
+  "password": "Cuadrante2026"
+}
+
+### ==================== CATEGORÍAS ====================
+
+### Listar categorías sin token (401)
+GET {{baseUrl}}/categories
+
+### Listar categorías (200)
+GET {{baseUrl}}/categories
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Crear categoría (201)
+# @name newCategory
+POST {{baseUrl}}/categories
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Hielo",
+  "description": "Bolsas de hielo de 5 kg",
+  "color": "#06b6d4"
+}
+
+### Crear categoría con nombre repetido (400)
+POST {{baseUrl}}/categories
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Hielo",
+  "color": "#06b6d4"
+}
+
+### Crear categoría con color inválido y sin nombre (400)
+POST {{baseUrl}}/categories
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "color": "azul"
+}
+
+### Obtener categoría por id (200)
+GET {{baseUrl}}/categories/{{newCategory.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Editar categoría (200)
+PATCH {{baseUrl}}/categories/{{newCategory.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "description": "Bolsas de hielo de 5 y 10 kg"
+}
+
+### Eliminar categoría (200)
+DELETE {{baseUrl}}/categories/{{newCategory.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Eliminar la misma categoría otra vez (404)
+DELETE {{baseUrl}}/categories/{{newCategory.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Buscar la categoría Garrafón (200)
+# @name garrafon
+GET {{baseUrl}}/categories?search=garrafon
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Eliminar una categoría que usan entregas (400)
+DELETE {{baseUrl}}/categories/{{garrafon.response.body.$.data[0].id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### ==================== VEHÍCULOS ====================
+
+### Listar vehículos (200)
+GET {{baseUrl}}/vehicles
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Filtrar vehículos por tipo (200)
+GET {{baseUrl}}/vehicles?type=camioneta
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Filtro con tipo inválido (400)
+GET {{baseUrl}}/vehicles?type=avion
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Crear vehículo (201)
+# @name newVehicle
+POST {{baseUrl}}/vehicles
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "plate": "gto-999-z",
+  "type": "automovil",
+  "model": "Volkswagen Saveiro",
+  "capacityKg": 600
+}
+
+### Crear vehículo con placas repetidas (400)
+POST {{baseUrl}}/vehicles
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "plate": "GTO-999-Z",
+  "type": "automovil",
+  "model": "Otro",
+  "capacityKg": 600
+}
+
+### Crear vehículo con datos inválidos (400)
+POST {{baseUrl}}/vehicles
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "plate": "X",
+  "type": "avion",
+  "model": "",
+  "capacityKg": -5
+}
+
+### Editar vehículo (200)
+PATCH {{baseUrl}}/vehicles/{{newVehicle.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "en_mantenimiento"
+}
+
+### ==================== REPARTIDORES ====================
+
+### Listar repartidores con su vehículo (populate) (200)
+GET {{baseUrl}}/couriers
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Resumen de repartidores: zonas y entregas por estado (200)
+GET {{baseUrl}}/couriers/summary
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Crear repartidor con el vehículo nuevo (201)
+# @name newCourier
+POST {{baseUrl}}/couriers
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Miguel Torres",
+  "phone": "4775678901",
+  "vehicle": "{{newVehicle.response.body.data.id}}"
+}
+
+### Crear repartidor con teléfono inválido (400)
+POST {{baseUrl}}/couriers
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Miguel Torres",
+  "phone": "477-ABC"
+}
+
+### Crear repartidor con un vehículo que no existe (400)
+POST {{baseUrl}}/couriers
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Miguel Torres",
+  "phone": "4775678901",
+  "vehicle": "000000000000000000000000"
+}
+
+### Editar repartidor (200)
+PATCH {{baseUrl}}/couriers/{{newCourier.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "inactivo"
+}
+
+### Eliminar el vehículo: el repartidor se queda sin vehículo (200)
+DELETE {{baseUrl}}/vehicles/{{newVehicle.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Ver al repartidor sin vehículo (200)
+GET {{baseUrl}}/couriers/{{newCourier.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Eliminar repartidor (200)
+DELETE {{baseUrl}}/couriers/{{newCourier.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Repartidor con id inválido (400)
+GET {{baseUrl}}/couriers/abc123
+Authorization: Bearer {{login.response.body.data.token}}

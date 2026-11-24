@@ -1,0 +1,138 @@
+# Pruebas de zonas (GeoJSON Polygon) y de las reglas geoespaciales.
+# Corre las peticiones en orden: algunas usan resultados de las anteriores.
+
+@baseUrl = http://localhost:3000/api
+
+### Login con el usuario de prueba (200)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@cuadrante.mx",
+  "password": "Cuadrante2026"
+}
+
+### Listar zonas con su repartidor (populate) (200)
+GET {{baseUrl}}/zones
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Zonas en GeoJSON para el mapa (200)
+GET {{baseUrl}}/zones/geojson
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Entregas sin zona antes de dibujar la zona nueva (200, son 2)
+GET {{baseUrl}}/deliveries?zone=none
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Zona que se encima con Zona Centro (400)
+POST {{baseUrl}}/zones
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Zona Encimada",
+  "color": "#f97316",
+  "area": {
+    "type": "Polygon",
+    "coordinates": [[[-101.690, 21.120], [-101.660, 21.120], [-101.660, 21.130], [-101.690, 21.130]]]
+  }
+}
+
+### Zona con polígono cuyos lados se cruzan (400)
+POST {{baseUrl}}/zones
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Zona Moño",
+  "color": "#f97316",
+  "area": {
+    "type": "Polygon",
+    "coordinates": [[[-101.80, 21.20], [-101.78, 21.22], [-101.78, 21.20], [-101.80, 21.22]]]
+  }
+}
+
+### Zona con menos de 3 vértices y coordenadas fuera de rango (400)
+POST {{baseUrl}}/zones
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Zona Mala",
+  "color": "#f97316",
+  "area": {
+    "type": "Polygon",
+    "coordinates": [[[-101.80, 21.20], [-101.78, 21.22]]]
+  }
+}
+
+### Buscar a Sofía para asignarle la zona nueva (200)
+# @name sofia
+GET {{baseUrl}}/couriers?search=sofia
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Crear Zona Poniente: el anillo sin cerrar se cierra solo (201)
+# @name poniente
+POST {{baseUrl}}/zones
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Zona Poniente",
+  "color": "#a855f7",
+  "courier": "{{sofia.response.body.$.data[0].id}}",
+  "area": {
+    "type": "Polygon",
+    "coordinates": [[[-101.745, 21.115], [-101.715, 21.115], [-101.715, 21.135], [-101.745, 21.135]]]
+  }
+}
+
+### Entregas sin zona después: El Molino ya quedó en Zona Poniente (200, solo 1)
+GET {{baseUrl}}/deliveries?zone=none
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Entregas de la Zona Poniente (200, 1: Fraccionamiento El Molino)
+GET {{baseUrl}}/deliveries?zone={{poniente.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Mover la Zona Poniente lejos: El Molino vuelve a quedar sin zona (200)
+PATCH {{baseUrl}}/zones/{{poniente.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "area": {
+    "type": "Polygon",
+    "coordinates": [[[-101.80, 21.20], [-101.78, 21.20], [-101.78, 21.22], [-101.80, 21.22]]]
+  }
+}
+
+### Entregas de la Zona Poniente después de moverla (200, 0)
+GET {{baseUrl}}/deliveries?zone={{poniente.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Renombrar la zona y quitarle el repartidor (200)
+PATCH {{baseUrl}}/zones/{{poniente.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Zona Poniente Lejana",
+  "courier": null
+}
+
+### Editar zona sin campos (400)
+PATCH {{baseUrl}}/zones/{{poniente.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{}
+
+### Eliminar la zona (200)
+DELETE {{baseUrl}}/zones/{{poniente.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Eliminar la misma zona otra vez (404)
+DELETE {{baseUrl}}/zones/{{poniente.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}

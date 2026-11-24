@@ -1,0 +1,182 @@
+# Pruebas de entregas (las ubicaciones exactas del mapa, GeoJSON Point).
+# Corre las peticiones en orden.
+
+@baseUrl = http://localhost:3000/api
+
+### Login con el usuario de prueba (200)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "demo@cuadrante.mx",
+  "password": "Cuadrante2026"
+}
+
+### Listar entregas sin token (401)
+GET {{baseUrl}}/deliveries
+
+### Listar entregas con categoría, zona y repartidor (populate) (200)
+GET {{baseUrl}}/deliveries
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Buscar por nombre: texto parcial y sin acentos (200)
+GET {{baseUrl}}/deliveries?search=tortilleria
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Buscar la categoría Garrafón para usar su id (200)
+# @name garrafon
+GET {{baseUrl}}/categories?search=garrafon
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Filtrar por categoría (200)
+GET {{baseUrl}}/deliveries?category={{garrafon.response.body.$.data[0].id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Filtrar por estado (200)
+GET {{baseUrl}}/deliveries?status=pendiente
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Filtrar las que no cayeron en ninguna zona (200)
+GET {{baseUrl}}/deliveries?zone=none
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Combinar búsqueda y filtros (200)
+GET {{baseUrl}}/deliveries?search=a&category={{garrafon.response.body.$.data[0].id}}&status=pendiente
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Filtro con categoría inválida (400)
+GET {{baseUrl}}/deliveries?category=meteorito
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Filtro con estado inválido (400)
+GET {{baseUrl}}/deliveries?status=perdido
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Entregas en GeoJSON para el mapa (200)
+GET {{baseUrl}}/deliveries/geojson
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Registrar entrega en el Centro: se asigna sola a Zona Centro y a Luis (201)
+# @name newDelivery
+POST {{baseUrl}}/deliveries
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Familia Domínguez",
+  "description": "3 garrafones, tocar el timbre dos veces",
+  "category": "{{garrafon.response.body.$.data[0].id}}",
+  "location": {
+    "type": "Point",
+    "coordinates": [-101.6810, 21.1240]
+  }
+}
+
+### Registrar entrega fuera de toda zona: queda sin zona (201)
+# @name outside
+POST {{baseUrl}}/deliveries
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Rancho San José",
+  "description": "Pedido fuera de cobertura",
+  "category": "{{garrafon.response.body.$.data[0].id}}",
+  "location": {
+    "type": "Point",
+    "coordinates": [-101.7600, 21.1800]
+  }
+}
+
+### Registrar entrega con datos inválidos (400)
+POST {{baseUrl}}/deliveries
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "",
+  "category": "abc",
+  "location": {
+    "type": "Point",
+    "coordinates": [21.1240, -101.6810]
+  }
+}
+
+### Registrar entrega con una categoría que no existe (400)
+POST {{baseUrl}}/deliveries
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "name": "Prueba",
+  "description": "Categoría inexistente",
+  "category": "000000000000000000000000",
+  "location": {
+    "type": "Point",
+    "coordinates": [-101.6810, 21.1240]
+  }
+}
+
+### Obtener entrega por id (200)
+GET {{baseUrl}}/deliveries/{{newDelivery.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Obtener entrega con id inválido (400)
+GET {{baseUrl}}/deliveries/ABC-123
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Obtener entrega que no existe (404)
+GET {{baseUrl}}/deliveries/000000000000000000000000
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Editar desde el popup: cambia el estado (200)
+PATCH {{baseUrl}}/deliveries/{{newDelivery.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "en_ruta"
+}
+
+### Mover el punto a la Zona Norte: cambia de zona y de repartidor (200)
+PATCH {{baseUrl}}/deliveries/{{newDelivery.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "location": {
+    "type": "Point",
+    "coordinates": [-101.6800, 21.1550]
+  }
+}
+
+### Editar con estado no permitido (400)
+PATCH {{baseUrl}}/deliveries/{{newDelivery.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "perdido"
+}
+
+### Editar intentando cambiar la zona a mano (400)
+PATCH {{baseUrl}}/deliveries/{{newDelivery.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "zone": "000000000000000000000000"
+}
+
+### Eliminar desde el popup (200)
+DELETE {{baseUrl}}/deliveries/{{newDelivery.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Eliminar la misma entrega otra vez (404)
+DELETE {{baseUrl}}/deliveries/{{newDelivery.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
+
+### Eliminar la entrega de fuera de zona (200)
+DELETE {{baseUrl}}/deliveries/{{outside.response.body.data.id}}
+Authorization: Bearer {{login.response.body.data.token}}
