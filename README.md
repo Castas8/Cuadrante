@@ -101,10 +101,15 @@ Filtros de entregas: `?search=&category=&status=&zone=` (`zone=none` = entregas 
 ## Despliegue
 
 - **Base de datos:** MongoDB Atlas.
-- **Backend:** Railway (`npm start`). Variables: `MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `FRONTEND_ORIGINS`.
+- **Backend:** Render (Web Service, carpeta `backend`, `npm start`). Variables: `MONGODB_URI`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `FRONTEND_ORIGINS`.
 - **Frontend:** Vercel (carpeta `frontend`). Variable: `VITE_API_URL`.
 
 | | URL |
 |---|---|
-| Aplicación | _pendiente_ |
-| API | _pendiente_ |
+| Aplicación | https://cuadrante-pied.vercel.app |
+| API | https://cuadrante-api-tyn0.onrender.com/api |
+| Health check | https://cuadrante-api-tyn0.onrender.com/api/health |
+
+**Usuario de prueba:** `demo@cuadrante.mx` / `Cuadrante2026`
+
+> El backend está en el plan gratuito de Render: si pasa 15 minutos sin uso se duerme, y la primera petición tarda ~1 minuto en despertarlo.
